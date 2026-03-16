@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://szqainekuvkiuskotxyc.supabase.co";
 const SUPABASE_KEY = "sb_publishable_vdjIT54UN2IwCDKVqLvceA_J7lhE2Un";
+const YOUTUBE_API_KEY = "AIzaSyDQKTGFToY-lH87PlHpfUIgLW6P7FNApuY";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const MAX_COMMENT = 100;
@@ -68,6 +69,25 @@ function getLastWeekLabel() {
 
 function getTierLabel(id) { return TIERS.find(t => t.id === id)?.label || ""; }
 
+// YouTube APIでチャンネル情報を取得
+async function fetchYouTubeChannelInfo(handle) {
+  try {
+    // @handleからチャンネルを検索
+    const username = handle.replace("@", "");
+    const res = await fetch(
+      "https://www.googleapis.com/youtube/v3/channels?part=statistics&forHandle=" + username + "&key=" + YOUTUBE_API_KEY
+    );
+    const data = await res.json();
+    if (data.items && data.items.length > 0) {
+      const subs = parseInt(data.items[0].statistics.subscriberCount, 10);
+      return { success: true, subs };
+    }
+    return { success: false, error: "チャンネルが見つかりません" };
+  } catch (e) {
+    return { success: false, error: "取得エラー" };
+  }
+}
+
 const medals = ["🥇", "🥈", "🥉"];
 
 const inputStyle = {
@@ -88,9 +108,10 @@ export default function App() {
   const [lastWeekChannels, setLastWeekChannels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [handle, setHandle] = useState("");
-  const [subCount, setSubCount] = useState("");
   const [genre, setGenre] = useState("");
   const [comment, setComment] = useState("");
+  const [ytLoading, setYtLoading] = useState(false);
+  const [ytInfo, setYtInfo] = useState(null); // { subs, error }
   const [activeTier, setActiveTier] = useState("sprout");
   const [activeGenre, setActiveGenre] = useState("all");
   const [activeSection, setActiveSection] = useState("this");
@@ -110,6 +131,21 @@ export default function App() {
     fetchChannels();
     fetchLastWeekChannels();
   }, []);
+
+  // handleが確定したらYouTube APIで自動取得
+  useEffect(() => {
+    if (!handle || !handle.startsWith("@") || handle.length < 2) {
+      setYtInfo(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setYtLoading(true);
+      const result = await fetchYouTubeChannelInfo(handle);
+      setYtInfo(result);
+      setYtLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [handle]);
 
   async function fetchChannels() {
     setLoading(true);
@@ -157,11 +193,12 @@ export default function App() {
     if (!h) return triggerError("@handleを入力してください");
     if (!h.startsWith("@")) h = "@" + h;
     if (!/^@[\w.-]+$/.test(h)) return triggerError("正しい@handle形式で（例: @channelname）");
-    const subs = parseInt(subCount, 10);
-    if (isNaN(subs) || subs < 0) return triggerError("登録者数を入力してください");
-    if (subs > 10000) return triggerError("登録者10,000人以下のチャンネルのみ対象です");
+    if (!ytInfo || !ytInfo.success) return triggerError("チャンネル情報を取得中です。少し待ってから投稿してください");
     if (!genre) return triggerError("ジャンルを選択してください");
     if (comment.length > MAX_COMMENT) return triggerError("コメントは100文字以内にしてください");
+
+    const subs = ytInfo.subs;
+    if (subs > 10000) return triggerError("登録者10,000人以下のチャンネルのみ対象です（現在 " + subs.toLocaleString() + "人）");
 
     const todayKey = new Date().toISOString().split("T")[0];
     const ipHash = btoa(navigator.userAgent + todayKey).slice(0, 32);
@@ -178,20 +215,13 @@ export default function App() {
     await supabase.from("ip_limits").insert({ ip_hash: ipHash, handle: h, date_key: todayKey });
 
     setActiveTier(getTier(subs)); setActiveGenre("all"); setActiveSection("this");
-    setHandle(""); setSubCount(""); setGenre(""); setComment("");
+    setHandle(""); setGenre(""); setComment(""); setYtInfo(null);
     setSuccess(h + " を応援しました！");
     setTimeout(() => setSuccess(""), 3000);
     fetchChannels();
   }
 
   const genreLabel = (id) => GENRES.find(g => g.id === id)?.label || "";
-
-  const tierPreview = (subs) => {
-    if (subs <= 100)   return { text: "たまご部門に投稿されます",  bg: "#fdf6e3", border: "#e8d49a", color: "#c47d00" };
-    if (subs <= 1000)  return { text: "新芽部門に投稿されます",    bg: RED_LIGHT, border: RED_BORDER, color: RED_DARK };
-    if (subs <= 10000) return { text: "成長中部門に投稿されます",  bg: "#ffe8e8", border: "#ffaaaa", color: "#aa0000" };
-    return { text: "10,000人以下のチャンネルのみ対象です", bg: "#fff0f0", border: "#ffbbbb", color: "#cc0000" };
-  };
 
   const ranked = getRanked(channels);
   const lastRanked = getRanked(lastWeekChannels);
@@ -285,6 +315,7 @@ export default function App() {
           <p style={{ fontSize: 13, opacity: 0.8, margin: 0 }}>登録者10,000人以下限定のYouTuber応援ランキング</p>
         </div>
 
+        {/* 検索 */}
         <div style={{ background: "#fff", border: "1px solid #e5e5e5", borderRadius: 12, padding: "18px 22px", marginBottom: 18, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
           <div style={{ fontSize: 12, color: "#aaa", marginBottom: 10, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>チャンネル順位を検索</div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -313,17 +344,26 @@ export default function App() {
           )}
         </div>
 
+        {/* 投稿フォーム */}
         <div style={{ background: "#fff", border: "1px solid #e5e5e5", borderRadius: 12, padding: "22px", marginBottom: 18, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
           <div style={{ fontSize: 12, color: "#aaa", marginBottom: 14, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>応援チャンネルを投稿</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <input value={handle} onChange={e => setHandle(e.target.value)} placeholder="@channelhandle" style={inputStyle} />
-            <input value={subCount} onChange={e => setSubCount(e.target.value)} placeholder="登録者数（10,000以下）" type="number" min={0} max={10000} style={inputStyle} />
-            {subCount && !isNaN(parseInt(subCount)) && (() => { const p = tierPreview(parseInt(subCount)); return <div style={{ padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, background: p.bg, border: "1px solid " + p.border, color: p.color }}>{p.text}</div>; })()}
+            <input value={handle} onChange={e => setHandle(e.target.value)} placeholder="@channelhandle（自動で登録者数を取得します）" style={inputStyle} />
+
+            {/* YouTube API 結果表示 */}
+            {ytLoading && <div style={{ padding: "8px 14px", borderRadius: 8, fontSize: 13, background: "#f0f0f0", color: "#888" }}>チャンネル情報を取得中...</div>}
+            {ytInfo && ytInfo.success && (
+              <div style={{ padding: "9px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, background: ytInfo.subs > 10000 ? "#fff0f0" : ytInfo.subs <= 100 ? "#fdf6e3" : ytInfo.subs <= 1000 ? RED_LIGHT : "#ffe8e8", border: "1px solid " + (ytInfo.subs > 10000 ? "#ffbbbb" : ytInfo.subs <= 100 ? "#e8d49a" : ytInfo.subs <= 1000 ? RED_BORDER : "#ffaaaa"), color: ytInfo.subs > 10000 ? RED_DARK : ytInfo.subs <= 100 ? "#c47d00" : RED_DARK }}>
+                {ytInfo.subs > 10000 ? "登録者 " + ytInfo.subs.toLocaleString() + "人 → 対象外（10,000人超え）" : "登録者 " + ytInfo.subs.toLocaleString() + "人 → " + (ytInfo.subs <= 100 ? "たまご部門" : ytInfo.subs <= 1000 ? "新芽部門" : "成長中部門")}
+              </div>
+            )}
+            {ytInfo && !ytInfo.success && <div style={{ padding: "8px 14px", borderRadius: 8, fontSize: 13, background: "#fff0f0", border: "1px solid #ffbbbb", color: RED_DARK }}>⚠ {ytInfo.error}（@handleが正しいか確認してください）</div>}
+
             <div>
               <div style={{ fontSize: 12, color: "#aaa", marginBottom: 8, fontWeight: 600 }}>ジャンルを選択</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                 {GENRES.filter(g => g.id !== "all").map(g => (
-                  <button key={g.id} onClick={() => setGenre(g.id)} style={{ padding: "6px 13px", borderRadius: 20, fontSize: 13, cursor: "pointer", border: genre === g.id ? "1px solid " + RED : "1px solid #e0e0e0", background: genre === g.id ? RED_LIGHT : "#f9f9f9", color: genre === g.id ? RED_DARK : "#666", fontWeight: genre === g.id ? 700 : 400, transition: "all 0.15s", fontFamily: "inherit" }}>{g.label}</button>
+                  <button key={g.id} onClick={() => setGenre(g.id)} style={{ padding: "6px 13px", borderRadius: 20, fontSize: 13, cursor: "pointer", border: genre === g.id ? "1px solid " + RED : "1px solid #e0e0e0", background: genre === g.id ? RED_LIGHT : "#f9f9f9", color: genre === g.id ? RED_DARK : "#666", fontWeight: genre === g.id ? 700 : 400, fontFamily: "inherit" }}>{g.label}</button>
                 ))}
               </div>
             </div>
@@ -339,9 +379,10 @@ export default function App() {
           </div>
           {error && <div style={{ marginTop: 10, padding: "10px 14px", background: "#fff0f0", border: "1px solid #ffbbbb", borderRadius: 8, fontSize: 13, color: RED_DARK, animation: shake ? "shake 0.4s ease" : "none" }}>⚠ {error}</div>}
           {success && <div style={{ marginTop: 10, padding: "10px 14px", background: RED_LIGHT, border: "1px solid " + RED_BORDER, borderRadius: 8, fontSize: 13, color: RED_DARK, fontWeight: 600 }}>{success}</div>}
-          <div style={{ marginTop: 10, fontSize: 11, color: "#ccc" }}>※ 1日1チャンネルまで投稿可　※ 登録者数は自己申告制</div>
+          <div style={{ marginTop: 10, fontSize: 11, color: "#ccc" }}>※ 1日1チャンネルまで投稿可　※ 登録者数はYouTube APIで自動取得</div>
         </div>
 
+        {/* ランキング */}
         <div style={{ background: "#fff", border: "1px solid #e5e5e5", borderRadius: 12, padding: "22px", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
           <div style={{ display: "flex", borderBottom: "1px solid #e5e5e5", marginBottom: 18 }}>
             <button style={tabStyle(activeSection === "this")} onClick={() => setActiveSection("this")}>今週のランキング{sunday && " （集計中）"}</button>
@@ -352,7 +393,7 @@ export default function App() {
           )}
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
             {TIERS.map(t => (
-              <button key={t.id} onClick={() => { setActiveTier(t.id); setActiveGenre("all"); }} style={{ flex: 1, padding: "10px 6px", borderRadius: 10, cursor: "pointer", border: activeTier === t.id ? "2px solid " + RED : "2px solid #e5e5e5", background: activeTier === t.id ? RED_LIGHT : "#f9f9f9", color: activeTier === t.id ? RED_DARK : "#aaa", transition: "all 0.2s", textAlign: "center", fontFamily: "inherit" }}>
+              <button key={t.id} onClick={() => { setActiveTier(t.id); setActiveGenre("all"); }} style={{ flex: 1, padding: "10px 6px", borderRadius: 10, cursor: "pointer", border: activeTier === t.id ? "2px solid " + RED : "2px solid #e5e5e5", background: activeTier === t.id ? RED_LIGHT : "#f9f9f9", color: activeTier === t.id ? RED_DARK : "#aaa", textAlign: "center", fontFamily: "inherit" }}>
                 <div style={{ fontSize: 13, marginBottom: 2, fontWeight: 700 }}>{t.label}</div>
                 <div style={{ fontSize: 10 }}>{t.desc}</div>
               </button>
@@ -366,12 +407,9 @@ export default function App() {
           <div style={{ fontSize: 13, fontWeight: 700, color: RED_DARK, marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #f0f0f0" }}>
             {TIERS.find(t => t.id === activeTier)?.label} ／ {GENRES.find(g => g.id === activeGenre)?.label}ランキング
           </div>
-          {loading ? (
-            <div style={{ textAlign: "center", padding: "40px", color: "#ccc" }}>読み込み中...</div>
-          ) : activeSection === "this" ? (
-            sunday ? <div style={{ textAlign: "center", padding: "40px 20px", color: "#ccc", fontSize: 14, border: "1px dashed #e5e5e5", borderRadius: 10 }}>集計中のため表示できません。先週の結果はタブから確認できます。</div>
-              : <RankingList items={ranked} emptyMsg="まだ投稿がありません" />
-          ) : <RankingList items={lastRanked} emptyMsg="先週のデータがありません" />}
+          {loading ? <div style={{ textAlign: "center", padding: "40px", color: "#ccc" }}>読み込み中...</div>
+            : activeSection === "this" ? (sunday ? <div style={{ textAlign: "center", padding: "40px 20px", color: "#ccc", fontSize: 14, border: "1px dashed #e5e5e5", borderRadius: 10 }}>集計中のため表示できません。先週の結果はタブから確認できます。</div> : <RankingList items={ranked} emptyMsg="まだ投稿がありません" />)
+            : <RankingList items={lastRanked} emptyMsg="先週のデータがありません" />}
         </div>
 
         <div style={{ marginTop: 16, padding: "14px 20px", background: "#fffbf0", border: "1px dashed #e8d49a", borderRadius: 10, textAlign: "center" }}>
