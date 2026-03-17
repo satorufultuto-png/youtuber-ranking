@@ -18,14 +18,7 @@ const GENRES = [
   { id: "sports", label: "スポーツ" },
   { id: "music", label: "音楽・演奏" },
   { id: "vlog", label: "くたばん・日常" },
-    { id: "game", label: "ゲーム実況" },
-    { id: "vtuber", label: "Vチューバー" },
-    { id: "asmr", label: "ASMR・癒やし" },
-    { id: "explain", label: "解説・教育" },
-    { id: "ent", label: "エンタメ・ネタ" },
-    { id: "lifehack", label: "ライフハック" },
-    { id: "shorts", label: "ショート動画" },
-    { id: "other", label: "その他" },
+  { id: "other", label: "その他" },
 ];
 
 const TIERS = [
