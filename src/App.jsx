@@ -266,7 +266,7 @@ export default function App() {
                     <div style={{ fontSize: 18, fontWeight: 900, color: i === 0 ? RED : "#ccc" }}>{ch.votes}</div>
                     <div style={{ fontSize: 11, color: "#ccc" }}>票</div>
                   </div>
-                  <a href={"https://twitter.com/intent/tweet?text=" + encodeURIComponent(ch.handle + " さんが『隠れYouTuber発掘所』で" + (activeGenre !== "all" ? activeGenre : "") + (i + 1) + "位にランクイン！みんなで応援しよう！") + "&url=" + encodeURIComponent("https://satosatoinfo00.com/")}
+                  <a href={"https://twitter.com/intent/tweet?text=" + encodeURIComponent(ch.handle + " さんが『隠れYouTuber発掘所』で" + (i + 1) + "位にランクイン！みんなで応援しよう！") + "&url=" + encodeURIComponent("https://satosatoinfo00.com/") + "&related=" + encodeURIComponent("YouTube") + "&text=" + encodeURIComponent("\n\n▼YouTubeチャンネルはこちら\nhttps://www.youtube.com/" + ch.handle)}
   target="_blank" rel="noopener noreferrer"
   style={{ display: "inline-block", padding: "3px 9px", background: "#000", borderRadius: 20, fontSize: 11, color: "#fff", textDecoration: "none" }}>
   X でシェア
