@@ -266,11 +266,11 @@ export default function App() {
                     <div style={{ fontSize: 18, fontWeight: 900, color: i === 0 ? RED : "#ccc" }}>{ch.votes}</div>
                     <div style={{ fontSize: 11, color: "#ccc" }}>票</div>
                   </div>
-                  <a href={"https://twitter.com/intent/tweet?text=" + encodeURIComponent(ch.handle + " を応援中！登録者" + ch.subs.toLocaleString() + "人の隠れた才能チャンネル。\nhttps://www.youtube.com/" + ch.handle) + "&hashtags=隠れYouTuber発掘所"}
-                    target="_blank" rel="noopener noreferrer"
-                    style={{ display: "inline-block", padding: "3px 9px", background: "#000", borderRadius: 20, fontSize: 11, color: "#fff", textDecoration: "none", fontWeight: 700, whiteSpace: "nowrap" }}>
-                    X でシェア
-                  </a>
+                  <a href={"https://twitter.com/intent/tweet?text=" + encodeURIComponent(ch.handle + " さんが『隠れYouTuber発掘所』で" + (activeGenre !== "all" ? activeGenre : "") + (i + 1) + "位にランクイン！みんなで応援しよう！") + "&url=" + encodeURIComponent("https://satosatoinfo00.com/")}
+  target="_blank" rel="noopener noreferrer"
+  style={{ display: "inline-block", padding: "3px 9px", background: "#000", borderRadius: 20, fontSize: 11, color: "#fff", textDecoration: "none" }}>
+  X でシェア
+</a>
                 </div>
               </div>
               {isExpanded && (
