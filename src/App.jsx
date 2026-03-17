@@ -347,6 +347,8 @@ export default function App() {
         {/* 投稿フォーム */}
         <div style={{ background: "#fff", border: "1px solid #e5e5e5", borderRadius: 12, padding: "22px", marginBottom: 18, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
           <div style={{ fontSize: 12, color: "#aaa", marginBottom: 14, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>応援チャンネルを投稿</div>
+          <div style={{ fontSize: 13, color: RED, fontWeight: "bold", textAlign: "center", background: RED_LIGHT, padding: "10px", borderRadius: 8, marginBottom: 15, border: "1px solid " + RED_BORDER }}>
+  ⚠️ 投票は1チャンネルにつき1日1回までです
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <input value={handle} onChange={e => setHandle(e.target.value)} placeholder="@channelhandle（自動で登録者数を取得します）" style={inputStyle} />
 
