@@ -263,7 +263,7 @@ export default function App() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5, flexShrink: 0 }}>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: i === 0 ? RED : "#ccc" }}>{ch.votes}</div>
+                    <div style={{ fontSize: 26, fontWeight: 900, color: i === 0 ? RED : "#" }}>{ch.votes}</div>
                     <div style={{ fontSize: 11, color: "#ccc" }}>票</div>
                   </div>
 <a href={"https://twitter.com/intent/tweet?text=" + encodeURIComponent(ch.handle + " さんが『隠れYouTuber発掘所』で" + (i + 1) + "位にランクイン！みんなで応援しよう！\n\n▼YouTubeチャンネルはこちら\nhttps://www.youtube.com/" + ch.handle + "\n\nユニコーンYoutuber発掘・投票サイトはこちら：") + "&url=" + encodeURIComponent("https://satosatoinfo00.com/")}
